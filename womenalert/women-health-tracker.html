@@ -1,0 +1,1298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Women Health Tracker</title>
+<style>
+:root {
+  --pink: #f48fb1;
+  --pink-light: #fce4ec;
+  --pink-dark: #e91e63;
+  --lavender: #ce93d8;
+  --lavender-light: #f3e5f5;
+  --pastel-blue: #b3e5fc;
+  --pastel-green: #c8e6c9;
+  --pastel-yellow: #fff9c4;
+  --white: #ffffff;
+  --gray-100: #fafafa;
+  --gray-200: #f5f5f5;
+  --gray-300: #eeeeee;
+  --gray-500: #9e9e9e;
+  --gray-700: #616161;
+  --gray-900: #212121;
+  --text: #3d2c35;
+  --radius: 16px;
+  --shadow: 0 2px 12px rgba(233,30,99,0.10);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--pink-light); color: var(--text); min-height: 100vh; overflow-x: hidden; }
+button { cursor: pointer; border: none; background: none; font-family: inherit; }
+input, select, textarea { font-family: inherit; }
+
+/* ── TOAST ── */
+#toast { position: fixed; top: 16px; left: 50%; transform: translateX(-50%) translateY(-80px); background: var(--gray-900); color: #fff; padding: 10px 20px; border-radius: 24px; font-size: 14px; z-index: 9999; transition: transform .3s ease; pointer-events: none; white-space: nowrap; }
+#toast.show { transform: translateX(-50%) translateY(0); }
+
+/* ── AUTH SCREEN ── */
+#auth-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; background: linear-gradient(160deg, var(--pink-light) 0%, var(--lavender-light) 100%); padding: 32px; }
+#auth-screen .logo { font-size: 48px; margin-bottom: 12px; }
+#auth-screen h1 { font-size: 22px; color: var(--pink-dark); margin-bottom: 8px; }
+#auth-screen p { color: var(--gray-500); font-size: 14px; margin-bottom: 32px; text-align: center; }
+.pin-dots { display: flex; gap: 16px; margin-bottom: 32px; }
+.pin-dot { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--pink); background: transparent; transition: background .2s; }
+.pin-dot.filled { background: var(--pink-dark); border-color: var(--pink-dark); }
+.pin-pad { display: grid; grid-template-columns: repeat(3, 72px); gap: 12px; }
+.pin-btn { width: 72px; height: 72px; border-radius: 50%; background: var(--white); box-shadow: var(--shadow); font-size: 22px; font-weight: 600; color: var(--text); transition: background .15s; }
+.pin-btn:active { background: var(--pink-light); }
+.pin-btn.del { font-size: 18px; color: var(--gray-500); }
+#auth-error { color: var(--pink-dark); font-size: 13px; margin-top: 12px; min-height: 18px; }
+#auth-lockout { color: var(--gray-500); font-size: 13px; margin-top: 8px; }
+</style>
+
+<style>
+/* ── ONBOARDING ── */
+#onboarding { display: none; min-height: 100vh; background: linear-gradient(160deg, var(--pink-light) 0%, var(--lavender-light) 100%); }
+.ob-slide { display: none; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 40px 28px; text-align: center; }
+.ob-slide.active { display: flex; }
+.ob-emoji { font-size: 72px; margin-bottom: 24px; }
+.ob-title { font-size: 24px; font-weight: 700; color: var(--pink-dark); margin-bottom: 12px; }
+.ob-desc { font-size: 15px; color: var(--gray-700); line-height: 1.6; margin-bottom: 40px; }
+.ob-dots { display: flex; gap: 8px; margin-bottom: 32px; }
+.ob-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--gray-300); transition: background .2s; }
+.ob-dot.active { background: var(--pink-dark); width: 24px; border-radius: 4px; }
+.btn-primary { background: linear-gradient(135deg, var(--pink-dark), var(--lavender)); color: #fff; padding: 14px 40px; border-radius: 32px; font-size: 16px; font-weight: 600; box-shadow: 0 4px 16px rgba(233,30,99,0.3); transition: opacity .2s; }
+.btn-primary:active { opacity: .85; }
+.btn-secondary { color: var(--gray-500); font-size: 14px; margin-top: 12px; padding: 8px; }
+.ob-input-group { width: 100%; max-width: 320px; margin-bottom: 24px; }
+.ob-input-group label { display: block; font-size: 13px; color: var(--gray-700); margin-bottom: 6px; text-align: left; }
+.ob-input-group input { width: 100%; padding: 12px 16px; border: 2px solid var(--pink-light); border-radius: 12px; font-size: 15px; background: var(--white); color: var(--text); outline: none; transition: border-color .2s; }
+.ob-input-group input:focus { border-color: var(--pink); }
+
+/* ── APP SHELL ── */
+#app { display: none; flex-direction: column; min-height: 100vh; }
+.screen { display: none; flex: 1; overflow-y: auto; padding-bottom: 80px; }
+.screen.active { display: block; }
+
+/* ── BOTTOM NAV ── */
+#bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--white); border-top: 1px solid var(--gray-300); display: flex; z-index: 100; box-shadow: 0 -2px 12px rgba(0,0,0,0.06); }
+.nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 8px 4px 10px; gap: 3px; color: var(--gray-500); font-size: 10px; font-weight: 500; transition: color .2s; }
+.nav-btn .nav-icon { font-size: 22px; }
+.nav-btn.active { color: var(--pink-dark); }
+
+/* ── SCREEN HEADER ── */
+.screen-header { background: linear-gradient(135deg, var(--pink-dark), var(--lavender)); color: #fff; padding: 48px 20px 20px; }
+.screen-header h2 { font-size: 20px; font-weight: 700; }
+.screen-header p { font-size: 13px; opacity: .85; margin-top: 2px; }
+
+/* ── CARDS ── */
+.card { background: var(--white); border-radius: var(--radius); padding: 16px; margin: 12px 16px 0; box-shadow: var(--shadow); }
+.card-title { font-size: 13px; font-weight: 600; color: var(--gray-500); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+
+/* ── HOME / DASHBOARD ── */
+.phase-card { background: linear-gradient(135deg, var(--pink-dark), var(--lavender)); color: #fff; border-radius: var(--radius); padding: 24px 20px; margin: 12px 16px 0; box-shadow: 0 4px 20px rgba(233,30,99,0.25); }
+.phase-label { font-size: 12px; opacity: .85; text-transform: uppercase; letter-spacing: 1px; }
+.phase-name { font-size: 28px; font-weight: 700; margin: 4px 0; text-transform: capitalize; }
+.phase-sub { font-size: 14px; opacity: .9; }
+.stats-row { display: flex; gap: 12px; margin: 12px 16px 0; }
+.stat-card { flex: 1; background: var(--white); border-radius: var(--radius); padding: 14px 12px; box-shadow: var(--shadow); text-align: center; }
+.stat-val { font-size: 24px; font-weight: 700; color: var(--pink-dark); }
+.stat-lbl { font-size: 11px; color: var(--gray-500); margin-top: 2px; }
+.tip-card { background: linear-gradient(135deg, var(--lavender-light), var(--pink-light)); border-radius: var(--radius); padding: 16px; margin: 12px 16px 0; border-left: 4px solid var(--lavender); }
+.tip-card .tip-icon { font-size: 20px; margin-bottom: 6px; }
+.tip-card p { font-size: 14px; color: var(--gray-700); line-height: 1.5; }
+</style>
+
+<style>
+/* ── CALENDAR ── */
+.cal-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px 8px; }
+.cal-month { font-size: 18px; font-weight: 700; color: var(--text); }
+.cal-nav { width: 36px; height: 36px; border-radius: 50%; background: var(--pink-light); color: var(--pink-dark); font-size: 18px; display: flex; align-items: center; justify-content: center; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; padding: 0 12px; }
+.cal-day-name { text-align: center; font-size: 11px; font-weight: 600; color: var(--gray-500); padding: 6px 0; }
+.cal-day { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-size: 13px; cursor: pointer; position: relative; transition: background .15s; }
+.cal-day:active { opacity: .7; }
+.cal-day.today { font-weight: 700; color: var(--pink-dark); }
+.cal-day.period { background: var(--pink-dark); color: #fff; }
+.cal-day.period-pred { background: var(--pink-light); color: var(--pink-dark); border: 2px dashed var(--pink); }
+.cal-day.fertile { background: var(--pastel-green); color: #2e7d32; }
+.cal-day.ovulation { background: var(--lavender); color: #6a1b9a; }
+.cal-day.has-symptom::after { content: ''; position: absolute; bottom: 3px; width: 4px; height: 4px; border-radius: 50%; background: var(--pink-dark); }
+.cal-day.other-month { color: var(--gray-300); }
+.cal-legend { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 16px; }
+.legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--gray-700); }
+.legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+.cal-detail { background: var(--white); border-radius: var(--radius); margin: 8px 16px; padding: 14px; box-shadow: var(--shadow); min-height: 60px; }
+.cal-detail-date { font-size: 13px; font-weight: 600; color: var(--pink-dark); margin-bottom: 6px; }
+.cal-detail-symptoms { font-size: 13px; color: var(--gray-700); }
+
+/* ── LOG SCREEN ── */
+.log-section { margin: 12px 16px 0; }
+.log-section-title { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 10px; }
+.date-input-row { display: flex; gap: 10px; }
+.date-input-row .field { flex: 1; }
+.field label { display: block; font-size: 12px; color: var(--gray-500); margin-bottom: 4px; }
+.field input, .field select { width: 100%; padding: 10px 12px; border: 2px solid var(--gray-300); border-radius: 10px; font-size: 14px; background: var(--white); color: var(--text); outline: none; transition: border-color .2s; }
+.field input:focus, .field select:focus { border-color: var(--pink); }
+.symptom-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.symptom-chip { padding: 7px 14px; border-radius: 20px; border: 2px solid var(--gray-300); font-size: 13px; color: var(--gray-700); background: var(--white); transition: all .15s; }
+.symptom-chip.selected { border-color: var(--pink-dark); background: var(--pink-light); color: var(--pink-dark); font-weight: 600; }
+.add-custom-row { display: flex; gap: 8px; margin-top: 8px; }
+.add-custom-row input { flex: 1; padding: 8px 12px; border: 2px solid var(--gray-300); border-radius: 10px; font-size: 13px; outline: none; }
+.add-custom-row input:focus { border-color: var(--pink); }
+.btn-small { padding: 8px 16px; border-radius: 10px; background: var(--pink-light); color: var(--pink-dark); font-size: 13px; font-weight: 600; }
+.cycle-list { margin-top: 8px; }
+.cycle-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--gray-200); }
+.cycle-item:last-child { border-bottom: none; }
+.cycle-item-dates { font-size: 13px; color: var(--text); }
+.cycle-item-dur { font-size: 12px; color: var(--gray-500); margin-top: 2px; }
+.cycle-item-del { color: var(--gray-500); font-size: 18px; padding: 4px 8px; }
+.empty-state { text-align: center; padding: 32px 16px; color: var(--gray-500); font-size: 14px; }
+.empty-state .empty-icon { font-size: 40px; margin-bottom: 8px; }
+</style>
+
+<style>
+/* ── INSIGHTS ── */
+.chart-bar-wrap { display: flex; flex-direction: column; gap: 8px; }
+.chart-bar-row { display: flex; align-items: center; gap: 8px; }
+.chart-bar-label { font-size: 12px; color: var(--gray-700); width: 80px; flex-shrink: 0; }
+.chart-bar-track { flex: 1; background: var(--gray-200); border-radius: 6px; height: 14px; overflow: hidden; }
+.chart-bar-fill { height: 100%; border-radius: 6px; background: linear-gradient(90deg, var(--pink-dark), var(--lavender)); transition: width .5s ease; }
+.chart-bar-val { font-size: 12px; color: var(--gray-500); width: 28px; text-align: right; }
+.cycle-len-chart { display: flex; align-items: flex-end; gap: 6px; height: 80px; padding: 0 4px; }
+.cycle-len-bar { flex: 1; background: linear-gradient(180deg, var(--lavender), var(--pink)); border-radius: 4px 4px 0 0; min-height: 4px; transition: height .4s ease; position: relative; }
+.cycle-len-bar span { position: absolute; bottom: -18px; left: 50%; transform: translateX(-50%); font-size: 10px; color: var(--gray-500); white-space: nowrap; }
+.cycle-len-wrap { height: 100px; margin-bottom: 8px; }
+
+/* ── SETTINGS ── */
+.settings-group { margin: 12px 16px 0; }
+.settings-group-title { font-size: 12px; font-weight: 600; color: var(--gray-500); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 8px; padding: 0 4px; }
+.settings-item { background: var(--white); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; box-shadow: var(--shadow); }
+.settings-item-left { display: flex; align-items: center; gap: 12px; }
+.settings-item-icon { font-size: 20px; }
+.settings-item-label { font-size: 15px; color: var(--text); }
+.settings-item-sub { font-size: 12px; color: var(--gray-500); margin-top: 1px; }
+.toggle { position: relative; width: 44px; height: 24px; }
+.toggle input { opacity: 0; width: 0; height: 0; }
+.toggle-slider { position: absolute; inset: 0; background: var(--gray-300); border-radius: 24px; transition: background .2s; cursor: pointer; }
+.toggle-slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: transform .2s; box-shadow: 0 1px 4px rgba(0,0,0,.2); }
+.toggle input:checked + .toggle-slider { background: var(--pink-dark); }
+.toggle input:checked + .toggle-slider::before { transform: translateX(20px); }
+.settings-btn { color: var(--pink-dark); font-size: 14px; font-weight: 600; }
+.reminder-time-input { border: 2px solid var(--gray-300); border-radius: 8px; padding: 4px 8px; font-size: 14px; color: var(--text); outline: none; }
+.reminder-time-input:focus { border-color: var(--pink); }
+.days-select { border: 2px solid var(--gray-300); border-radius: 8px; padding: 4px 8px; font-size: 14px; color: var(--text); outline: none; background: var(--white); }
+
+/* ── PREGNANCY MODE ── */
+.preg-card { background: linear-gradient(135deg, #fce4ec, #f3e5f5); border-radius: var(--radius); padding: 20px; margin: 12px 16px 0; text-align: center; }
+.preg-week { font-size: 48px; font-weight: 700; color: var(--pink-dark); }
+.preg-label { font-size: 14px; color: var(--gray-700); margin-bottom: 12px; }
+.preg-milestone { font-size: 14px; color: var(--gray-700); line-height: 1.6; background: var(--white); border-radius: 12px; padding: 12px; margin-top: 12px; }
+
+/* ── MOOD TRACKER ── */
+.mood-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.mood-chip { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 10px 12px; border-radius: 14px; border: 2px solid var(--gray-300); background: var(--white); font-size: 11px; color: var(--gray-700); min-width: 60px; transition: all .15s; }
+.mood-chip .mood-emoji { font-size: 22px; }
+.mood-chip.selected { border-color: var(--lavender); background: var(--lavender-light); color: #6a1b9a; font-weight: 600; }
+
+/* ── DARK MODE ── */
+body.dark { --pink-light: #2d1b22; --lavender-light: #1e1a2e; --white: #1e1e2e; --gray-100: #252535; --gray-200: #2a2a3e; --gray-300: #3a3a50; --gray-500: #888; --gray-700: #bbb; --gray-900: #eee; --text: #f0d6e8; --shadow: 0 2px 12px rgba(0,0,0,0.4); background: #12121e; }
+body.dark .screen-header { background: linear-gradient(135deg, #880e4f, #4a148c); }
+body.dark .phase-card { background: linear-gradient(135deg, #880e4f, #4a148c); }
+body.dark #bottom-nav { background: #1e1e2e; border-top-color: #3a3a50; }
+body.dark .cal-nav { background: #2a2a3e; }
+body.dark .pin-btn { background: #2a2a3e; color: #f0d6e8; }
+body.dark #auth-screen { background: linear-gradient(160deg, #2d1b22, #1e1a2e); }
+body.dark #onboarding { background: linear-gradient(160deg, #2d1b22, #1e1a2e); }
+.dark-toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 4px 0; }
+
+/* ── CHATBOT ── */
+#chatbot-fab { position: fixed; bottom: 90px; right: 16px; width: 52px; height: 52px; border-radius: 50%; background: linear-gradient(135deg, var(--pink-dark), var(--lavender)); color: #fff; font-size: 24px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 16px rgba(233,30,99,0.4); z-index: 200; transition: transform .2s; }
+#chatbot-fab:active { transform: scale(.92); }
+#chatbot-panel { position: fixed; bottom: 0; left: 0; right: 0; height: 70vh; background: var(--white); border-radius: 24px 24px 0 0; box-shadow: 0 -4px 32px rgba(0,0,0,0.15); z-index: 300; display: none; flex-direction: column; }
+#chatbot-panel.open { display: flex; }
+.chatbot-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px 12px; border-bottom: 1px solid var(--gray-300); }
+.chatbot-title { font-size: 16px; font-weight: 700; color: var(--pink-dark); }
+.chatbot-close { font-size: 22px; color: var(--gray-500); padding: 4px; }
+.chatbot-messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+.chat-msg { max-width: 80%; padding: 10px 14px; border-radius: 16px; font-size: 14px; line-height: 1.5; }
+.chat-msg.bot { background: var(--pink-light); color: var(--text); border-bottom-left-radius: 4px; align-self: flex-start; }
+.chat-msg.user { background: linear-gradient(135deg, var(--pink-dark), var(--lavender)); color: #fff; border-bottom-right-radius: 4px; align-self: flex-end; }
+.chatbot-input-row { display: flex; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--gray-300); }
+.chatbot-input-row input { flex: 1; padding: 10px 14px; border: 2px solid var(--gray-300); border-radius: 24px; font-size: 14px; outline: none; background: var(--white); color: var(--text); }
+.chatbot-input-row input:focus { border-color: var(--pink); }
+.chatbot-send { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, var(--pink-dark), var(--lavender)); color: #fff; font-size: 18px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.chatbot-suggestions { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 16px 0; }
+.chat-suggestion { padding: 6px 12px; border-radius: 16px; border: 1.5px solid var(--pink); color: var(--pink-dark); font-size: 12px; background: var(--white); }
+
+/* ── CONFIDENCE BADGE ── */
+.confidence-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; padding: 3px 8px; border-radius: 10px; background: rgba(255,255,255,0.2); color: #fff; margin-top: 6px; }
+
+/* ── ANALYTICS CHARTS ── */
+.mood-phase-chart { display: flex; flex-direction: column; gap: 6px; }
+.mood-phase-row { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+.mood-phase-label { width: 70px; color: var(--gray-700); flex-shrink: 0; }
+.mood-phase-emojis { display: flex; gap: 3px; flex-wrap: wrap; }
+
+/* ── PRINT ── */
+@media print {
+  #auth-screen, #onboarding, #bottom-nav, .screen:not(#screen-home), #chatbot-fab, #chatbot-panel { display: none !important; }
+  #print-view { display: block !important; }
+  body { background: #fff; }
+}
+#print-view { display: none; padding: 20px; }
+#print-view h1 { color: var(--pink-dark); margin-bottom: 16px; }
+#print-view table { width: 100%; border-collapse: collapse; font-size: 13px; }
+#print-view th { background: var(--pink-light); padding: 8px; text-align: left; }
+#print-view td { padding: 8px; border-bottom: 1px solid var(--gray-200); }
+</style>
+
+</head>
+<body>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- AUTH SCREEN -->
+<div id="auth-screen">
+  <div class="logo">🌸</div>
+  <h1>Women Health Tracker</h1>
+  <p>Enter your passcode to continue</p>
+  <div class="pin-dots" id="pin-dots">
+    <div class="pin-dot" id="d0"></div>
+    <div class="pin-dot" id="d1"></div>
+    <div class="pin-dot" id="d2"></div>
+    <div class="pin-dot" id="d3"></div>
+  </div>
+  <div class="pin-pad">
+    <button class="pin-btn" onclick="pinPress('1')">1</button>
+    <button class="pin-btn" onclick="pinPress('2')">2</button>
+    <button class="pin-btn" onclick="pinPress('3')">3</button>
+    <button class="pin-btn" onclick="pinPress('4')">4</button>
+    <button class="pin-btn" onclick="pinPress('5')">5</button>
+    <button class="pin-btn" onclick="pinPress('6')">6</button>
+    <button class="pin-btn" onclick="pinPress('7')">7</button>
+    <button class="pin-btn" onclick="pinPress('8')">8</button>
+    <button class="pin-btn" onclick="pinPress('9')">9</button>
+    <button class="pin-btn" style="visibility:hidden"></button>
+    <button class="pin-btn" onclick="pinPress('0')">0</button>
+    <button class="pin-btn del" onclick="pinDel()">⌫</button>
+  </div>
+  <div id="auth-error"></div>
+  <div id="auth-lockout"></div>
+</div>
+
+<!-- ONBOARDING -->
+<div id="onboarding">
+  <div class="ob-slide active" id="ob0">
+    <div class="ob-emoji">🌸</div>
+    <div class="ob-title">Welcome to Women Health Tracker</div>
+    <div class="ob-desc">Your personal companion for tracking your menstrual cycle, symptoms, and overall health — beautifully simple.</div>
+    <div class="ob-dots"><div class="ob-dot active"></div><div class="ob-dot"></div><div class="ob-dot"></div><div class="ob-dot"></div><div class="ob-dot"></div></div>
+    <button class="btn-primary" onclick="obNext()">Get Started</button>
+    <button class="btn-secondary" onclick="obSkip()">Skip</button>
+  </div>
+  <div class="ob-slide" id="ob1">
+    <div class="ob-emoji">📅</div>
+    <div class="ob-title">Track Your Cycle</div>
+    <div class="ob-desc">Log your period dates and let the app predict your next period and fertile window automatically.</div>
+    <div class="ob-dots"><div class="ob-dot"></div><div class="ob-dot active"></div><div class="ob-dot"></div><div class="ob-dot"></div><div class="ob-dot"></div></div>
+    <button class="btn-primary" onclick="obNext()">Next</button>
+    <button class="btn-secondary" onclick="obSkip()">Skip</button>
+  </div>
+  <div class="ob-slide" id="ob2">
+    <div class="ob-emoji">💊</div>
+    <div class="ob-title">Log Symptoms & Reminders</div>
+    <div class="ob-desc">Track daily symptoms like cramps, mood, and fatigue. Set reminders so you're always prepared.</div>
+    <div class="ob-dots"><div class="ob-dot"></div><div class="ob-dot"></div><div class="ob-dot active"></div><div class="ob-dot"></div><div class="ob-dot"></div></div>
+    <button class="btn-primary" onclick="obNext()">Next</button>
+    <button class="btn-secondary" onclick="obSkip()">Skip</button>
+  </div>
+  <div class="ob-slide" id="ob3">
+    <div class="ob-emoji">📊</div>
+    <div class="ob-title">Insights & Trends</div>
+    <div class="ob-desc">Discover patterns in your health data with beautiful charts and personalized insights.</div>
+    <div class="ob-dots"><div class="ob-dot"></div><div class="ob-dot"></div><div class="ob-dot"></div><div class="ob-dot active"></div><div class="ob-dot"></div></div>
+    <button class="btn-primary" onclick="obNext()">Next</button>
+    <button class="btn-secondary" onclick="obSkip()">Skip</button>
+  </div>
+  <div class="ob-slide" id="ob4">
+    <div class="ob-emoji">🌺</div>
+    <div class="ob-title">When did your last period start?</div>
+    <div class="ob-desc">This helps us give you accurate predictions right away.</div>
+    <div class="ob-input-group">
+      <label>Last period start date</label>
+      <input type="date" id="ob-last-period" />
+    </div>
+    <div class="ob-dots"><div class="ob-dot"></div><div class="ob-dot"></div><div class="ob-dot"></div><div class="ob-dot"></div><div class="ob-dot active"></div></div>
+    <button class="btn-primary" onclick="obFinish()">Start Tracking</button>
+    <button class="btn-secondary" onclick="obSkip()">Skip for now</button>
+  </div>
+</div>
+
+<!-- APP SHELL -->
+<div id="app">
+  <!-- HOME -->
+  <section class="screen active" id="screen-home">
+    <div class="screen-header">
+      <h2>🌸 Good day!</h2>
+      <p id="home-date"></p>
+    </div>
+    <div id="home-phase-card"></div>
+    <div class="stats-row" id="home-stats"></div>
+    <div id="home-tip"></div>
+    <div id="home-diet"></div>
+    <div id="home-preg" style="display:none"></div>
+    <div style="height:12px"></div>
+  </section>
+
+  <!-- CALENDAR -->
+  <section class="screen" id="screen-calendar">
+    <div class="screen-header"><h2>📅 Calendar</h2><p>Your cycle at a glance</p></div>
+    <div class="cal-header">
+      <button class="cal-nav" onclick="calPrev()">‹</button>
+      <div class="cal-month" id="cal-month-label"></div>
+      <button class="cal-nav" onclick="calNext()">›</button>
+    </div>
+    <div class="cal-grid" id="cal-grid"></div>
+    <div class="cal-legend">
+      <div class="legend-item"><div class="legend-dot" style="background:var(--pink-dark)"></div>Period</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--pink-light);border:2px dashed var(--pink)"></div>Predicted</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--pastel-green)"></div>Fertile</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--lavender)"></div>Ovulation</div>
+    </div>
+    <div class="cal-detail" id="cal-detail"><div style="color:var(--gray-500);font-size:13px">Tap a date to see details</div></div>
+  </section>
+
+  <!-- LOG -->
+  <section class="screen" id="screen-log">
+    <div class="screen-header"><h2>✏️ Log</h2><p>Record your cycle & symptoms</p></div>
+    <div class="card log-section">
+      <div class="log-section-title">Period Dates</div>
+      <div class="date-input-row">
+        <div class="field"><label>Start Date</label><input type="date" id="log-start" /></div>
+        <div class="field"><label>End Date</label><input type="date" id="log-end" /></div>
+      </div>
+      <div style="margin-top:12px;display:flex;gap:8px">
+        <button class="btn-primary" style="flex:1;padding:12px" onclick="saveCycle()">Save Period</button>
+      </div>
+    </div>
+    <div class="card log-section">
+      <div class="log-section-title">Today's Mood</div>
+      <div class="mood-grid" id="mood-chips"></div>
+      <div style="margin-top:4px;font-size:12px;color:var(--gray-500)">Select all that apply</div>
+    </div>
+    <div class="card log-section">
+      <div class="log-section-title">Today's Symptoms</div>
+      <div class="symptom-grid" id="symptom-chips"></div>
+      <div class="add-custom-row">
+        <input type="text" id="custom-symptom-input" placeholder="Add custom symptom…" maxlength="30" />
+        <button class="btn-small" onclick="addCustomSymptom()">Add</button>
+      </div>
+      <div style="margin-top:12px">
+        <button class="btn-primary" style="width:100%;padding:12px" onclick="saveMoodAndSymptoms()">Save Mood & Symptoms</button>
+      </div>
+    </div>
+    <div class="card log-section">
+      <div class="log-section-title">Cycle History</div>
+      <div class="cycle-list" id="cycle-list"></div>
+    </div>
+    <div style="height:12px"></div>
+  </section>
+
+  <!-- INSIGHTS -->
+  <section class="screen" id="screen-insights">
+    <div class="screen-header"><h2>📊 Insights</h2><p>Your health patterns</p></div>
+    <div class="card" style="margin-top:12px">
+      <div class="card-title">Cycle Length Over Time</div>
+      <div class="cycle-len-wrap"><div class="cycle-len-chart" id="cycle-len-chart"></div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Mood vs Cycle Phase</div>
+      <div id="mood-phase-chart"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Symptom Frequency by Phase</div>
+      <div id="symptom-freq-chart"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Summary</div>
+      <div id="insights-summary"></div>
+    </div>
+    <div style="height:12px"></div>
+  </section>
+
+  <!-- SETTINGS -->
+  <section class="screen" id="screen-settings">
+    <div class="screen-header"><h2>⚙️ Settings</h2><p>Customize your experience</p></div>
+    <div class="settings-group">
+      <div class="settings-group-title">Appearance</div>
+      <div class="settings-item">
+        <div class="settings-item-left">
+          <div class="settings-item-icon">🌙</div>
+          <div><div class="settings-item-label">Dark Mode</div><div class="settings-item-sub">Easy on the eyes at night</div></div>
+        </div>
+        <label class="toggle"><input type="checkbox" id="toggle-dark-mode" onchange="toggleDarkMode()"><span class="toggle-slider"></span></label>
+      </div>
+    </div>
+    <div class="settings-group">
+      <div class="settings-group-title">Reminders</div>
+      <div class="settings-item">
+        <div class="settings-item-left">
+          <div class="settings-item-icon">🩸</div>
+          <div><div class="settings-item-label">Period Reminder</div>
+          <div class="settings-item-sub"><select class="days-select" id="period-days-before" onchange="saveReminders()"><option value="1">1 day before</option><option value="2" selected>2 days before</option><option value="3">3 days before</option><option value="5">5 days before</option></select></div></div>
+        </div>
+        <label class="toggle"><input type="checkbox" id="toggle-period-reminder" onchange="saveReminders()"><span class="toggle-slider"></span></label>
+      </div>
+      <div class="settings-item">
+        <div class="settings-item-left">
+          <div class="settings-item-icon">🌿</div>
+          <div><div class="settings-item-label">Ovulation Reminder</div>
+          <div class="settings-item-sub"><select class="days-select" id="ovulation-days-before" onchange="saveReminders()"><option value="1" selected>1 day before</option><option value="2">2 days before</option><option value="3">3 days before</option></select></div></div>
+        </div>
+        <label class="toggle"><input type="checkbox" id="toggle-ovulation-reminder" onchange="saveReminders()"><span class="toggle-slider"></span></label>
+      </div>
+      <div class="settings-item">
+        <div class="settings-item-left">
+          <div class="settings-item-icon">💊</div>
+          <div><div class="settings-item-label">Medication Reminder</div>
+          <div class="settings-item-sub"><input type="time" class="reminder-time-input" id="med-reminder-time" value="08:00" onchange="saveReminders()" /></div></div>
+        </div>
+        <label class="toggle"><input type="checkbox" id="toggle-med-reminder" onchange="saveReminders()"><span class="toggle-slider"></span></label>
+      </div>
+    </div>
+    <div class="settings-group">
+      <div class="settings-group-title">Security</div>
+      <div class="settings-item">
+        <div class="settings-item-left">
+          <div class="settings-item-icon">🔒</div>
+          <div><div class="settings-item-label">Passcode Lock</div><div class="settings-item-sub" id="passcode-status">Disabled</div></div>
+        </div>
+        <button class="settings-btn" id="passcode-btn" onclick="togglePasscode()">Enable</button>
+      </div>
+    </div>
+    <div class="settings-group">
+      <div class="settings-group-title">Features</div>
+      <div class="settings-item">
+        <div class="settings-item-left">
+          <div class="settings-item-icon">🤰</div>
+          <div><div class="settings-item-label">Pregnancy Mode</div><div class="settings-item-sub">Track pregnancy milestones</div></div>
+        </div>
+        <label class="toggle"><input type="checkbox" id="toggle-pregnancy" onchange="togglePregnancyMode()"><span class="toggle-slider"></span></label>
+      </div>
+    </div>
+    <div class="settings-group">
+      <div class="settings-group-title">Data</div>
+      <div class="settings-item">
+        <div class="settings-item-left">
+          <div class="settings-item-icon">📄</div>
+          <div><div class="settings-item-label">Export Health Report</div><div class="settings-item-sub">Print / save as PDF</div></div>
+        </div>
+        <button class="settings-btn" onclick="exportReport()">Export</button>
+      </div>
+      <div class="settings-item">
+        <div class="settings-item-left">
+          <div class="settings-item-icon">🗑️</div>
+          <div><div class="settings-item-label">Delete All Data</div><div class="settings-item-sub">Permanently remove all data</div></div>
+        </div>
+        <button class="settings-btn" style="color:#e53935" onclick="deleteAllData()">Delete</button>
+      </div>
+    </div>
+    <div style="height:12px"></div>
+  </section>
+</div>
+
+<!-- BOTTOM NAV -->
+<nav id="bottom-nav" style="display:none">
+  <button class="nav-btn active" id="nav-home" onclick="navigate('home')"><span class="nav-icon">🏠</span>Home</button>
+  <button class="nav-btn" id="nav-calendar" onclick="navigate('calendar')"><span class="nav-icon">📅</span>Calendar</button>
+  <button class="nav-btn" id="nav-log" onclick="navigate('log')"><span class="nav-icon">✏️</span>Log</button>
+  <button class="nav-btn" id="nav-insights" onclick="navigate('insights')"><span class="nav-icon">📊</span>Insights</button>
+  <button class="nav-btn" id="nav-settings" onclick="navigate('settings')"><span class="nav-icon">⚙️</span>Settings</button>
+</nav>
+
+<!-- CHATBOT FAB -->
+<button id="chatbot-fab" onclick="toggleChatbot()" title="Health Assistant">🤖</button>
+
+<!-- CHATBOT PANEL -->
+<div id="chatbot-panel">
+  <div class="chatbot-header">
+    <div class="chatbot-title">🌸 Health Assistant</div>
+    <button class="chatbot-close" onclick="toggleChatbot()">✕</button>
+  </div>
+  <div class="chatbot-suggestions">
+    <button class="chat-suggestion" onclick="chatAsk('Why do cramps happen?')">Why do cramps happen?</button>
+    <button class="chat-suggestion" onclick="chatAsk('What to eat during period?')">What to eat during period?</button>
+    <button class="chat-suggestion" onclick="chatAsk('When am I most fertile?')">When am I most fertile?</button>
+    <button class="chat-suggestion" onclick="chatAsk('How to reduce PMS?')">How to reduce PMS?</button>
+  </div>
+  <div class="chatbot-messages" id="chatbot-messages"></div>
+  <div class="chatbot-input-row">
+    <input type="text" id="chatbot-input" placeholder="Ask a health question…" onkeydown="if(event.key==='Enter')chatSend()" />
+    <button class="chatbot-send" onclick="chatSend()">➤</button>
+  </div>
+</div>
+
+<!-- PRINT VIEW -->
+<div id="print-view">
+  <h1>🌸 Women Health Tracker — Health Report</h1>
+  <div id="print-content"></div>
+</div>
+
+<script>
+// ── DATA STORE (localStorage, no external crypto dependency) ──
+const DS = {
+  save(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch(e) { showToast('Storage full. Please export and clear old data.', 'error'); } },
+  load(k) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : null; } catch(e) { return null; } },
+  remove(k) { localStorage.removeItem(k); },
+  clearAll() { const keys = ['wht_cycles','wht_symptoms','wht_reminders','wht_settings','wht_custom_symptoms']; keys.forEach(k => localStorage.removeItem(k)); }
+};
+
+// ── HELPERS ──
+function today() { return new Date().toISOString().slice(0,10); }
+function parseDate(s) { return s ? new Date(s + 'T00:00:00') : null; }
+function diffDays(a, b) { return Math.round((parseDate(b) - parseDate(a)) / 86400000); }
+function addDays(s, n) { const d = parseDate(s); d.setDate(d.getDate() + n); return d.toISOString().slice(0,10); }
+function fmtDate(s) { if (!s) return '—'; const d = parseDate(s); return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); }
+function uuid() { return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0;return(c==='x'?r:(r&0x3|0x8)).toString(16)}); }
+function showToast(msg, type='info') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.background = type === 'error' ? '#c62828' : '#212121';
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ── AUTH GUARD ──
+const Auth = {
+  _pin: '', _fails: 0, _lockedUntil: 0,
+  isEnabled() { const s = DS.load('wht_settings'); return s && s.passcodeEnabled && s.passcodeHash; },
+  hash(p) { let h = 0; for (let i=0;i<p.length;i++){h=((h<<5)-h)+p.charCodeAt(i);h|=0;} return h.toString(36); },
+  enable(p) { const s = DS.load('wht_settings') || {}; s.passcodeEnabled = true; s.passcodeHash = this.hash(p); DS.save('wht_settings', s); },
+  disable() { const s = DS.load('wht_settings') || {}; s.passcodeEnabled = false; s.passcodeHash = null; DS.save('wht_settings', s); },
+  verify(p) {
+    if (Date.now() < this._lockedUntil) return false;
+    const s = DS.load('wht_settings');
+    if (this.hash(p) === s.passcodeHash) { this._fails = 0; return true; }
+    this._fails++;
+    if (this._fails >= 5) { this._lockedUntil = Date.now() + 30000; this._fails = 0; }
+    return false;
+  },
+  isLocked() { return Date.now() < this._lockedUntil; },
+  lockSecondsLeft() { return Math.ceil((this._lockedUntil - Date.now()) / 1000); }
+};
+
+// ── CYCLE PREDICTOR (Enhanced with ML-like weighted prediction) ──
+const CyclePredictor = {
+  predict(cycles) {
+    const complete = cycles.filter(c => c.startDate && c.endDate).sort((a,b) => a.startDate.localeCompare(b.startDate));
+    if (complete.length === 0) return { phase:'unknown', nextPeriodDate:null, fertileWindowStart:null, fertileWindowEnd:null, ovulationDate:null, avgCycleLength:28, avgPeriodDuration:5, daysUntilNext:null, confidence:0 };
+    const last = complete[complete.length - 1];
+    let avgLen = 28, confidence = 0.3;
+    
+    // Enhanced prediction: weighted average (recent cycles weighted more)
+    if (complete.length >= 2) {
+      const lens = [];
+      for (let i = 1; i < complete.length; i++) lens.push(diffDays(complete[i-1].startDate, complete[i].startDate));
+      
+      // Apply exponential weighting (more recent = higher weight)
+      const weights = lens.map((_, i) => Math.pow(1.5, i));
+      const weightSum = weights.reduce((a,b)=>a+b,0);
+      const weightedSum = lens.reduce((sum, len, i) => sum + len * weights[i], 0);
+      avgLen = Math.round(weightedSum / weightSum);
+      
+      // Confidence increases with more data
+      confidence = Math.min(0.95, 0.3 + (complete.length * 0.15));
+      
+      // Adjust for cycle regularity (lower variance = higher confidence)
+      const variance = lens.reduce((sum, len) => sum + Math.pow(len - avgLen, 2), 0) / lens.length;
+      const stdDev = Math.sqrt(variance);
+      if (stdDev < 2) confidence = Math.min(0.98, confidence + 0.1);
+      else if (stdDev > 5) confidence = Math.max(0.4, confidence - 0.15);
+    }
+    
+    const avgDur = Math.round(complete.slice(-3).reduce((a,c)=>a+diffDays(c.startDate,c.endDate),0) / Math.min(complete.length,3));
+    const nextPeriod = addDays(last.startDate, avgLen);
+    const ovulation = addDays(nextPeriod, -14);
+    const fertStart = addDays(ovulation, -5);
+    const fertEnd = addDays(ovulation, 1);
+    const t = today();
+    let phase = 'luteal';
+    if (t >= last.startDate && t <= last.endDate) phase = 'period';
+    else if (t >= fertStart && t < ovulation) phase = 'fertile';
+    else if (t === ovulation) phase = 'ovulation';
+    else if (t > last.endDate && t < fertStart) phase = 'follicular';
+    const daysUntilNext = diffDays(t, nextPeriod);
+    return { phase, nextPeriodDate: nextPeriod, fertileWindowStart: fertStart, fertileWindowEnd: fertEnd, ovulationDate: ovulation, avgCycleLength: avgLen, avgPeriodDuration: avgDur, daysUntilNext, confidence };
+  }
+};
+
+// ── TIPS ──
+const TIPS = {
+  period: ['Stay hydrated and rest when needed 💧','Gentle yoga or walking can ease cramps 🧘','Warm compresses help with cramp relief 🌡️'],
+  fertile: ['This is your most energetic phase — great for workouts! 💪','Track any changes in cervical mucus 🌿','Stay hydrated and eat iron-rich foods 🥗'],
+  ovulation: ['You may feel a slight twinge on one side — that\'s normal 🌸','Energy levels are typically highest today ⚡','Great time for social activities and creativity 🎨'],
+  follicular: ['Your energy is rising — perfect for starting new projects 🌱','Focus on nutrient-dense foods to support your cycle 🥦','Light exercise feels great during this phase 🏃'],
+  luteal: ['You may feel more tired — honor your body\'s need for rest 😴','Reduce caffeine and sugar to ease PMS symptoms ☕','Journaling can help manage mood changes 📓'],
+  unknown: ['Log your first period to get personalized tips 🌸','Tracking consistently gives you better insights 📊','Your health journey starts with one log ✨']
+};
+function getTip(phase) { const arr = TIPS[phase] || TIPS.unknown; return arr[Math.floor(Math.random()*arr.length)]; }
+
+// ── PREGNANCY MILESTONES ──
+const PREG_MILESTONES = {
+  4:'Your baby is the size of a poppy seed 🌱',5:'Heart begins to beat 💓',6:'Brain and spinal cord forming 🧠',
+  7:'Arm and leg buds appear 🌿',8:'Fingers and toes forming 🤲',9:'All essential organs have begun to develop',
+  10:'Baby is now officially a fetus 🎉',12:'Risk of miscarriage drops significantly 🌸',16:'Baby can make facial expressions 😊',
+  20:'You may feel the first kicks! 🦵',24:'Baby can hear your voice 👂',28:'Eyes can open and close 👀',
+  32:'Baby is practicing breathing 🌬️',36:'Baby is considered early term 🌟',40:'Full term — baby is ready! 🎊'
+};
+function getPregMilestone(week) {
+  const keys = Object.keys(PREG_MILESTONES).map(Number).sort((a,b)=>a-b);
+  let milestone = 'Baby is growing strong! 💪';
+  for (const k of keys) { if (week >= k) milestone = PREG_MILESTONES[k]; }
+  return milestone;
+}
+
+// ── DEFAULT SYMPTOMS & MOODS ──
+const DEFAULT_SYMPTOMS = ['Cramps','Fatigue','Headache','Bloating','Acne','Back pain','Tender breasts','Nausea','Spotting'];
+const MOODS = [
+  { key:'happy', emoji:'😊', label:'Happy' },
+  { key:'sad', emoji:'😢', label:'Sad' },
+  { key:'tired', emoji:'😴', label:'Tired' },
+  { key:'anxious', emoji:'😰', label:'Anxious' },
+  { key:'irritable', emoji:'😤', label:'Irritable' },
+  { key:'calm', emoji:'😌', label:'Calm' },
+  { key:'energetic', emoji:'⚡', label:'Energetic' },
+  { key:'emotional', emoji:'🥺', label:'Emotional' }
+];
+
+// ── HEALTH DIET TIPS ──
+const DIET_TIPS = {
+  period: [
+    { icon:'🥩', tip:'Eat iron-rich foods like spinach, lentils, and red meat to replenish iron lost during menstruation.' },
+    { icon:'💧', tip:'Stay well hydrated — aim for 8+ glasses of water to reduce bloating and cramps.' },
+    { icon:'🍫', tip:'Dark chocolate (70%+) can ease cramps and boost mood with magnesium.' },
+    { icon:'🛌', tip:'Rest is essential. Your body is working hard — honor it with extra sleep.' }
+  ],
+  follicular: [
+    { icon:'🥗', tip:'Focus on fresh vegetables and lean proteins to support rising estrogen levels.' },
+    { icon:'🏃', tip:'Great time for cardio and strength training — energy is naturally rising.' },
+    { icon:'🫐', tip:'Antioxidant-rich berries support follicle development.' }
+  ],
+  ovulation: [
+    { icon:'🥦', tip:'Cruciferous vegetables like broccoli help metabolize excess estrogen.' },
+    { icon:'💪', tip:'Peak energy phase — ideal for high-intensity workouts.' },
+    { icon:'🐟', tip:'Omega-3 rich foods (salmon, walnuts) support egg quality.' }
+  ],
+  fertile: [
+    { icon:'🌿', tip:'Folate-rich foods (leafy greens, beans) are especially beneficial now.' },
+    { icon:'🥑', tip:'Healthy fats from avocado and nuts support hormone production.' }
+  ],
+  luteal: [
+    { icon:'☕', tip:'Reduce caffeine and alcohol to ease PMS symptoms and improve sleep.' },
+    { icon:'🍌', tip:'Magnesium-rich foods (bananas, dark chocolate) help with mood and cramps.' },
+    { icon:'🧘', tip:'Gentle yoga and stretching can ease tension and reduce bloating.' },
+    { icon:'🌙', tip:'Prioritize sleep — progesterone peaks now and supports deep rest.' }
+  ],
+  unknown: [
+    { icon:'🌸', tip:'Start logging your cycle to get personalized health and diet tips.' },
+    { icon:'💧', tip:'Staying hydrated is always a great foundation for health.' }
+  ]
+};
+function getDietTips(phase) { return DIET_TIPS[phase] || DIET_TIPS.unknown; }
+</script>
+
+<script>
+// ── ONBOARDING ──
+let obStep = 0;
+function obNext() {
+  document.getElementById('ob'+obStep).classList.remove('active');
+  obStep++;
+  if (obStep >= 5) { obFinish(); return; }
+  document.getElementById('ob'+obStep).classList.add('active');
+}
+function obSkip() { obFinish(); }
+function obFinish() {
+  const dateVal = document.getElementById('ob-last-period').value;
+  if (dateVal) {
+    const cycles = DS.load('wht_cycles') || [];
+    cycles.push({ id: uuid(), startDate: dateVal, endDate: null });
+    DS.save('wht_cycles', cycles);
+  }
+  const s = DS.load('wht_settings') || {};
+  s.onboardingComplete = true;
+  DS.save('wht_settings', s);
+  document.getElementById('onboarding').style.display = 'none';
+  launchApp();
+}
+
+// ── AUTH FLOW ──
+let pinBuffer = '';
+function pinPress(d) {
+  if (Auth.isLocked()) { showLockout(); return; }
+  if (pinBuffer.length >= 4) return;
+  pinBuffer += d;
+  updatePinDots();
+  if (pinBuffer.length === 4) setTimeout(checkPin, 150);
+}
+function pinDel() { pinBuffer = pinBuffer.slice(0,-1); updatePinDots(); }
+function updatePinDots() {
+  for (let i=0;i<4;i++) document.getElementById('d'+i).classList.toggle('filled', i < pinBuffer.length);
+}
+function checkPin() {
+  if (Auth.isLocked()) { showLockout(); pinBuffer=''; updatePinDots(); return; }
+  if (Auth.verify(pinBuffer)) {
+    document.getElementById('auth-screen').style.display = 'none';
+    launchApp();
+  } else {
+    document.getElementById('auth-error').textContent = Auth.isLocked() ? 'Too many attempts. Wait 30s.' : 'Incorrect passcode';
+    pinBuffer = ''; updatePinDots();
+    if (Auth.isLocked()) startLockoutTimer();
+  }
+}
+function showLockout() {
+  document.getElementById('auth-error').textContent = '';
+  document.getElementById('auth-lockout').textContent = `Locked. Try again in ${Auth.lockSecondsLeft()}s`;
+}
+function startLockoutTimer() {
+  const iv = setInterval(() => {
+    if (!Auth.isLocked()) { clearInterval(iv); document.getElementById('auth-lockout').textContent = ''; document.getElementById('auth-error').textContent = ''; }
+    else showLockout();
+  }, 1000);
+}
+
+// ── PASSCODE SETUP ──
+let passcodeSetupStep = 0, passcodeFirst = '';
+function togglePasscode() {
+  if (Auth.isEnabled()) {
+    if (confirm('Disable passcode lock?')) { Auth.disable(); updatePasscodeUI(); showToast('Passcode disabled'); }
+  } else {
+    passcodeSetupStep = 1; passcodeFirst = '';
+    const p = prompt('Set a 4-digit passcode:');
+    if (!p || !/^\d{4}$/.test(p)) { showToast('Please enter exactly 4 digits', 'error'); return; }
+    const p2 = prompt('Confirm passcode:');
+    if (p !== p2) { showToast('Passcodes do not match', 'error'); return; }
+    Auth.enable(p); updatePasscodeUI(); showToast('Passcode enabled 🔒');
+  }
+}
+function updatePasscodeUI() {
+  const enabled = Auth.isEnabled();
+  document.getElementById('passcode-status').textContent = enabled ? 'Enabled' : 'Disabled';
+  document.getElementById('passcode-btn').textContent = enabled ? 'Disable' : 'Enable';
+}
+
+// ── ROUTER ──
+let currentTab = 'home';
+function navigate(tab) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('screen-'+tab).classList.add('active');
+  document.getElementById('nav-'+tab).classList.add('active');
+  currentTab = tab;
+  if (tab === 'home') renderHome();
+  if (tab === 'calendar') renderCalendar();
+  if (tab === 'log') renderLog();
+  if (tab === 'insights') renderInsights();
+  if (tab === 'settings') renderSettings();
+}
+
+// ── LAUNCH ──
+function launchApp() {
+  document.getElementById('app').style.display = 'flex';
+  document.getElementById('bottom-nav').style.display = 'flex';
+  renderHome();
+  renderLog();
+  scheduleReminders();
+}
+
+// ── HOME / DASHBOARD ──
+function renderHome() {
+  const cycles = DS.load('wht_cycles') || [];
+  const settings = DS.load('wht_settings') || {};
+  document.getElementById('home-date').textContent = new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+
+  if (settings.pregnancyMode && settings.pregnancyStartDate) {
+    const weeks = Math.floor(diffDays(settings.pregnancyStartDate, today()) / 7);
+    document.getElementById('home-preg').style.display = 'block';
+    document.getElementById('home-preg').innerHTML = `
+      <div class="preg-card">
+        <div class="preg-label">Pregnancy Week</div>
+        <div class="preg-week">${weeks}</div>
+        <div class="preg-milestone">${getPregMilestone(weeks)}</div>
+      </div>`;
+    document.getElementById('home-phase-card').innerHTML = '';
+    document.getElementById('home-stats').innerHTML = '';
+    document.getElementById('home-tip').innerHTML = '';
+    return;
+  }
+  document.getElementById('home-preg').style.display = 'none';
+
+  const pred = CyclePredictor.predict(cycles);
+  const phaseLabels = { period:'🩸 Period', fertile:'🌿 Fertile Window', ovulation:'🌸 Ovulation', follicular:'🌱 Follicular', luteal:'🌙 Luteal', unknown:'🌸 Tracking' };
+  const phaseDesc = {
+    period: `Day ${cycles.length ? diffDays(cycles.filter(c=>c.startDate).sort((a,b)=>b.startDate.localeCompare(a.startDate))[0]?.startDate, today())+1 : 1} of your period`,
+    fertile: 'Your fertile window is active',
+    ovulation: 'Ovulation day!',
+    follicular: 'Building up to ovulation',
+    luteal: pred.daysUntilNext !== null ? `${pred.daysUntilNext} days until next period` : 'Luteal phase',
+    unknown: 'Log your first period to begin'
+  };
+  document.getElementById('home-phase-card').innerHTML = `
+    <div class="phase-card">
+      <div class="phase-label">Current Phase</div>
+      <div class="phase-name">${phaseLabels[pred.phase] || pred.phase}</div>
+      <div class="phase-sub">${phaseDesc[pred.phase] || ''}</div>
+      ${pred.confidence ? `<div class="confidence-badge">🎯 ${Math.round(pred.confidence*100)}% prediction confidence</div>` : ''}
+    </div>`;
+  document.getElementById('home-stats').innerHTML = `
+    <div class="stat-card"><div class="stat-val">${pred.daysUntilNext !== null ? pred.daysUntilNext : '—'}</div><div class="stat-lbl">Days until period</div></div>
+    <div class="stat-card"><div class="stat-val">${cycles.filter(c=>c.endDate).length >= 3 ? pred.avgCycleLength : '—'}</div><div class="stat-lbl">Avg cycle (days)</div></div>
+    <div class="stat-card"><div class="stat-val">${cycles.filter(c=>c.endDate).length}</div><div class="stat-lbl">Cycles tracked</div></div>`;
+  document.getElementById('home-tip').innerHTML = `
+    <div class="tip-card"><div class="tip-icon">💡</div><p>${getTip(pred.phase)}</p></div>`;
+  // Diet tips
+  const tips = getDietTips(pred.phase);
+  const tip = tips[Math.floor(Math.random()*tips.length)];
+  document.getElementById('home-diet').innerHTML = `
+    <div class="tip-card" style="border-left-color:var(--pastel-green);margin-top:0">
+      <div class="tip-icon">${tip.icon}</div><p>${tip.tip}</p>
+    </div>`;
+}
+</script>
+
+<script>
+// ── CALENDAR ──
+let calYear = new Date().getFullYear(), calMonth = new Date().getMonth();
+function calPrev() { calMonth--; if(calMonth<0){calMonth=11;calYear--;} renderCalendar(); }
+function calNext() { calMonth++; if(calMonth>11){calMonth=0;calYear++;} renderCalendar(); }
+function renderCalendar() {
+  const cycles = DS.load('wht_cycles') || [];
+  const symptoms = DS.load('wht_symptoms') || [];
+  const pred = CyclePredictor.predict(cycles);
+  const label = new Date(calYear, calMonth, 1).toLocaleDateString('en-US',{month:'long',year:'numeric'});
+  document.getElementById('cal-month-label').textContent = label;
+
+  // Build sets of dates
+  const periodDays = new Set(), predPeriodDays = new Set(), fertileDays = new Set(), ovulDays = new Set(), symptomDays = new Set();
+  cycles.forEach(c => {
+    if (!c.startDate) return;
+    let d = c.startDate;
+    const end = c.endDate || c.startDate;
+    while (d <= end) { periodDays.add(d); d = addDays(d, 1); }
+  });
+  if (pred.nextPeriodDate) {
+    const predEnd = addDays(pred.nextPeriodDate, (pred.avgPeriodDuration || 5) - 1);
+    let d = pred.nextPeriodDate;
+    while (d <= predEnd) { predPeriodDays.add(d); d = addDays(d, 1); }
+    // Also predict 2 more cycles ahead
+    for (let i=1;i<=2;i++) {
+      const np = addDays(pred.nextPeriodDate, pred.avgCycleLength * i);
+      const ne = addDays(np, (pred.avgPeriodDuration||5)-1);
+      let dd = np; while(dd<=ne){predPeriodDays.add(dd);dd=addDays(dd,1);}
+    }
+  }
+  if (pred.fertileWindowStart && pred.fertileWindowEnd) {
+    let d = pred.fertileWindowStart;
+    while (d <= pred.fertileWindowEnd) { fertileDays.add(d); d = addDays(d, 1); }
+  }
+  if (pred.ovulationDate) ovulDays.add(pred.ovulationDate);
+  symptoms.forEach(s => symptomDays.add(s.date));
+
+  const grid = document.getElementById('cal-grid');
+  grid.innerHTML = '';
+  ['Su','Mo','Tu','We','Th','Fr','Sa'].forEach(n => { const el=document.createElement('div'); el.className='cal-day-name'; el.textContent=n; grid.appendChild(el); });
+
+  const firstDay = new Date(calYear, calMonth, 1).getDay();
+  const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
+  const t = today();
+
+  for (let i=0;i<firstDay;i++) { const el=document.createElement('div'); el.className='cal-day other-month'; grid.appendChild(el); }
+  for (let d=1;d<=daysInMonth;d++) {
+    const dateStr = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const el = document.createElement('div');
+    el.className = 'cal-day';
+    el.textContent = d;
+    if (dateStr === t) el.classList.add('today');
+    if (periodDays.has(dateStr)) el.classList.add('period');
+    else if (ovulDays.has(dateStr)) el.classList.add('ovulation');
+    else if (fertileDays.has(dateStr)) el.classList.add('fertile');
+    else if (predPeriodDays.has(dateStr)) el.classList.add('period-pred');
+    if (symptomDays.has(dateStr)) el.classList.add('has-symptom');
+    el.onclick = () => showCalDetail(dateStr, symptoms);
+    grid.appendChild(el);
+  }
+}
+function showCalDetail(dateStr, symptoms) {
+  const detail = document.getElementById('cal-detail');
+  const log = (symptoms || DS.load('wht_symptoms') || []).find(s => s.date === dateStr);
+  detail.innerHTML = `<div class="cal-detail-date">${fmtDate(dateStr)}</div>
+    <div class="cal-detail-symptoms">${log && log.symptoms.length ? '🩺 ' + log.symptoms.join(', ') : 'No symptoms logged'}</div>`;
+}
+
+// ── LOG SCREEN ──
+function renderLog() {
+  renderMoodChips();
+  renderSymptomChips();
+  renderCycleList();
+  document.getElementById('log-start').value = today();
+}
+function renderMoodChips() {
+  const todayLog = (DS.load('wht_symptoms') || []).find(s => s.date === today());
+  const selectedMoods = todayLog ? (todayLog.moods || []) : [];
+  const grid = document.getElementById('mood-chips');
+  grid.innerHTML = '';
+  MOODS.forEach(m => {
+    const btn = document.createElement('button');
+    btn.className = 'mood-chip' + (selectedMoods.includes(m.key) ? ' selected' : '');
+    btn.innerHTML = `<span class="mood-emoji">${m.emoji}</span>${m.label}`;
+    btn.onclick = () => btn.classList.toggle('selected');
+    btn.dataset.key = m.key;
+    grid.appendChild(btn);
+  });
+}
+function renderSymptomChips() {
+  const custom = DS.load('wht_custom_symptoms') || [];
+  const all = [...DEFAULT_SYMPTOMS, ...custom];
+  const todayLog = (DS.load('wht_symptoms') || []).find(s => s.date === today());
+  const selected = todayLog ? todayLog.symptoms : [];
+  const grid = document.getElementById('symptom-chips');
+  grid.innerHTML = '';
+  all.forEach(sym => {
+    const btn = document.createElement('button');
+    btn.className = 'symptom-chip' + (selected.includes(sym) ? ' selected' : '');
+    btn.textContent = sym;
+    btn.onclick = () => btn.classList.toggle('selected');
+    grid.appendChild(btn);
+  });
+}
+function addCustomSymptom() {
+  const inp = document.getElementById('custom-symptom-input');
+  const val = inp.value.trim();
+  if (!val) return;
+  const custom = DS.load('wht_custom_symptoms') || [];
+  if (!custom.includes(val) && !DEFAULT_SYMPTOMS.includes(val)) { custom.push(val); DS.save('wht_custom_symptoms', custom); }
+  inp.value = '';
+  renderSymptomChips();
+}
+function saveMoodAndSymptoms() {
+  const selectedSymptoms = [...document.querySelectorAll('.symptom-chip.selected')].map(b => b.textContent);
+  const selectedMoods = [...document.querySelectorAll('.mood-chip.selected')].map(b => b.dataset.key);
+  const logs = DS.load('wht_symptoms') || [];
+  const t = today();
+  const idx = logs.findIndex(s => s.date === t);
+  if (idx >= 0) { logs[idx].symptoms = selectedSymptoms; logs[idx].moods = selectedMoods; }
+  else logs.push({ date: t, symptoms: selectedSymptoms, moods: selectedMoods });
+  DS.save('wht_symptoms', logs);
+  showToast('Mood & symptoms saved 🌸');
+}
+function saveSymptoms() { saveMoodAndSymptoms(); }
+function saveCycle() {
+  const start = document.getElementById('log-start').value;
+  const end = document.getElementById('log-end').value;
+  if (!start) { showToast('Please enter a start date', 'error'); return; }
+  if (end && end < start) { showToast('End date cannot be before start date', 'error'); return; }
+  const cycles = DS.load('wht_cycles') || [];
+  cycles.push({ id: uuid(), startDate: start, endDate: end || null });
+  DS.save('wht_cycles', cycles);
+  document.getElementById('log-start').value = today();
+  document.getElementById('log-end').value = '';
+  renderCycleList();
+  showToast('Period saved 🩸');
+  scheduleReminders();
+}
+function renderCycleList() {
+  const cycles = (DS.load('wht_cycles') || []).slice().reverse();
+  const el = document.getElementById('cycle-list');
+  if (!cycles.length) { el.innerHTML = '<div class="empty-state"><div class="empty-icon">📅</div>No cycles logged yet</div>'; return; }
+  el.innerHTML = cycles.map(c => `
+    <div class="cycle-item">
+      <div>
+        <div class="cycle-item-dates">🩸 ${fmtDate(c.startDate)} ${c.endDate ? '→ '+fmtDate(c.endDate) : '(ongoing)'}</div>
+        <div class="cycle-item-dur">${c.endDate ? diffDays(c.startDate,c.endDate)+' days' : 'End date not set'}</div>
+      </div>
+      <button class="cycle-item-del" onclick="deleteCycle('${c.id}')">🗑️</button>
+    </div>`).join('');
+}
+function deleteCycle(id) {
+  if (!confirm('Delete this cycle entry?')) return;
+  let cycles = DS.load('wht_cycles') || [];
+  cycles = cycles.filter(c => c.id !== id);
+  DS.save('wht_cycles', cycles);
+  renderCycleList();
+  showToast('Cycle deleted');
+}
+</script>
+
+<script>
+// ── INSIGHTS ──
+function renderInsights() {
+  const cycles = (DS.load('wht_cycles') || []).filter(c => c.startDate && c.endDate).sort((a,b)=>a.startDate.localeCompare(b.startDate));
+  const symptoms = DS.load('wht_symptoms') || [];
+  const pred = CyclePredictor.predict(cycles);
+
+  // Cycle length chart
+  const lens = [];
+  for (let i=1;i<cycles.length;i++) lens.push(diffDays(cycles[i-1].startDate, cycles[i].startDate));
+  const last6 = lens.slice(-6);
+  const chartEl = document.getElementById('cycle-len-chart');
+  if (!last6.length) { chartEl.innerHTML = '<div style="color:var(--gray-500);font-size:13px;padding:8px">Log more cycles to see chart</div>'; }
+  else {
+    const maxLen = Math.max(...last6, 35);
+    chartEl.innerHTML = last6.map((l,i) => `
+      <div class="cycle-len-bar" style="height:${Math.round((l/maxLen)*100)}%">
+        <span>${l}d</span>
+      </div>`).join('');
+  }
+
+  // Mood vs phase chart
+  const moodPhaseEl = document.getElementById('mood-phase-chart');
+  const moodByPhase = {};
+  symptoms.forEach(log => {
+    if (!log.moods || !log.moods.length) return;
+    const phase = getPhaseForDate(log.date, cycles);
+    if (!moodByPhase[phase]) moodByPhase[phase] = [];
+    moodByPhase[phase].push(...log.moods);
+  });
+  const phaseOrder = ['period','follicular','ovulation','fertile','luteal'];
+  const phaseEmoji = { period:'🩸', follicular:'🌱', ovulation:'🌸', fertile:'🌿', luteal:'🌙' };
+  const moodRows = phaseOrder.filter(p => moodByPhase[p] && moodByPhase[p].length).map(p => {
+    const moodCounts = {};
+    moodByPhase[p].forEach(m => { moodCounts[m] = (moodCounts[m]||0)+1; });
+    const top = Object.entries(moodCounts).sort((a,b)=>b[1]-a[1]).slice(0,4);
+    const emojis = top.map(([key]) => MOODS.find(m=>m.key===key)?.emoji || '').join(' ');
+    return `<div class="mood-phase-row"><div class="mood-phase-label">${phaseEmoji[p]} ${p.charAt(0).toUpperCase()+p.slice(1)}</div><div class="mood-phase-emojis">${emojis || '—'}</div></div>`;
+  });
+  moodPhaseEl.innerHTML = moodRows.length ? `<div class="mood-phase-chart">${moodRows.join('')}</div><div style="font-size:11px;color:var(--gray-500);margin-top:8px">Most common moods per phase</div>` : '<div style="color:var(--gray-500);font-size:13px">Log moods to see patterns</div>';
+
+  // Symptom frequency
+  const freqEl = document.getElementById('symptom-freq-chart');
+  const allSymptoms = [...DEFAULT_SYMPTOMS, ...(DS.load('wht_custom_symptoms')||[])];
+  const freq = {};
+  symptoms.forEach(log => {
+    const phase = getPhaseForDate(log.date, cycles);
+    log.symptoms.forEach(s => {
+      if (!freq[s]) freq[s] = { period:0, fertile:0, ovulation:0, luteal:0, follicular:0 };
+      if (freq[s][phase] !== undefined) freq[s][phase]++;
+    });
+  });
+  const topSymptoms = Object.entries(freq).sort((a,b)=>Object.values(b[1]).reduce((x,y)=>x+y,0)-Object.values(a[1]).reduce((x,y)=>x+y,0)).slice(0,6);
+  if (!topSymptoms.length) { freqEl.innerHTML = '<div style="color:var(--gray-500);font-size:13px">Log symptoms to see trends</div>'; }
+  else {
+    const maxCount = Math.max(...topSymptoms.map(([,v])=>Object.values(v).reduce((a,b)=>a+b,0)), 1);
+    freqEl.innerHTML = '<div class="chart-bar-wrap">' + topSymptoms.map(([name, counts]) => {
+      const total = Object.values(counts).reduce((a,b)=>a+b,0);
+      return `<div class="chart-bar-row">
+        <div class="chart-bar-label">${name}</div>
+        <div class="chart-bar-track"><div class="chart-bar-fill" style="width:${Math.round((total/maxCount)*100)}%"></div></div>
+        <div class="chart-bar-val">${total}</div>
+      </div>`;
+    }).join('') + '</div>';
+  }
+
+  // Summary
+  const summaryEl = document.getElementById('insights-summary');
+  const completeCycles = cycles.filter(c=>c.endDate);
+  summaryEl.innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;justify-content:space-between;font-size:14px"><span style="color:var(--gray-700)">Cycles tracked</span><strong>${completeCycles.length}</strong></div>
+      <div style="display:flex;justify-content:space-between;font-size:14px"><span style="color:var(--gray-700)">Avg cycle length</span><strong>${completeCycles.length>=3 ? pred.avgCycleLength+'d' : 'Need 3+ cycles'}</strong></div>
+      <div style="display:flex;justify-content:space-between;font-size:14px"><span style="color:var(--gray-700)">Avg period duration</span><strong>${completeCycles.length>=3 ? pred.avgPeriodDuration+'d' : 'Need 3+ cycles'}</strong></div>
+      <div style="display:flex;justify-content:space-between;font-size:14px"><span style="color:var(--gray-700)">Symptoms logged</span><strong>${symptoms.length} days</strong></div>
+    </div>`;
+}
+function getPhaseForDate(dateStr, cycles) {
+  const pred = CyclePredictor.predict(cycles);
+  for (const c of cycles) {
+    if (c.startDate && c.endDate && dateStr >= c.startDate && dateStr <= c.endDate) return 'period';
+  }
+  if (pred.fertileWindowStart && pred.fertileWindowEnd && dateStr >= pred.fertileWindowStart && dateStr <= pred.fertileWindowEnd) return 'fertile';
+  if (pred.ovulationDate && dateStr === pred.ovulationDate) return 'ovulation';
+  return 'luteal';
+}
+
+// ── SETTINGS ──
+function renderSettings() {
+  const rem = DS.load('wht_reminders') || {};
+  document.getElementById('toggle-period-reminder').checked = !!rem.periodReminderEnabled;
+  document.getElementById('toggle-ovulation-reminder').checked = !!rem.ovulationReminderEnabled;
+  document.getElementById('toggle-med-reminder').checked = !!rem.medicationReminderEnabled;
+  if (rem.periodReminderDaysBefore) document.getElementById('period-days-before').value = rem.periodReminderDaysBefore;
+  if (rem.ovulationReminderDaysBefore) document.getElementById('ovulation-days-before').value = rem.ovulationReminderDaysBefore;
+  if (rem.medicationReminderTime) document.getElementById('med-reminder-time').value = rem.medicationReminderTime;
+  updatePasscodeUI();
+  const settings = DS.load('wht_settings') || {};
+  document.getElementById('toggle-pregnancy').checked = !!settings.pregnancyMode;
+  document.getElementById('toggle-dark-mode').checked = !!settings.darkMode;
+}
+function toggleDarkMode() {
+  const enabled = document.getElementById('toggle-dark-mode').checked;
+  document.body.classList.toggle('dark', enabled);
+  const s = DS.load('wht_settings') || {};
+  s.darkMode = enabled;
+  DS.save('wht_settings', s);
+}
+function saveReminders() {
+  const rem = {
+    periodReminderEnabled: document.getElementById('toggle-period-reminder').checked,
+    periodReminderDaysBefore: parseInt(document.getElementById('period-days-before').value),
+    ovulationReminderEnabled: document.getElementById('toggle-ovulation-reminder').checked,
+    ovulationReminderDaysBefore: parseInt(document.getElementById('ovulation-days-before').value),
+    medicationReminderEnabled: document.getElementById('toggle-med-reminder').checked,
+    medicationReminderTime: document.getElementById('med-reminder-time').value
+  };
+  DS.save('wht_reminders', rem);
+  scheduleReminders();
+  showToast('Reminders saved 🔔');
+}
+function togglePregnancyMode() {
+  const enabled = document.getElementById('toggle-pregnancy').checked;
+  const s = DS.load('wht_settings') || {};
+  s.pregnancyMode = enabled;
+  if (enabled && !s.pregnancyStartDate) {
+    const d = prompt('Enter your pregnancy start date (YYYY-MM-DD):') || today();
+    s.pregnancyStartDate = d;
+  }
+  if (!enabled) s.pregnancyStartDate = null;
+  DS.save('wht_settings', s);
+  showToast(enabled ? 'Pregnancy mode enabled 🤰' : 'Pregnancy mode disabled');
+}
+function deleteAllData() {
+  if (!confirm('This will permanently delete ALL your health data. Are you sure?')) return;
+  if (!confirm('This cannot be undone. Confirm deletion?')) return;
+  DS.clearAll();
+  showToast('All data deleted');
+  setTimeout(() => location.reload(), 1500);
+}
+function exportReport() {
+  const cycles = DS.load('wht_cycles') || [];
+  const symptoms = DS.load('wht_symptoms') || [];
+  const pred = CyclePredictor.predict(cycles);
+  const printEl = document.getElementById('print-content');
+  printEl.innerHTML = `
+    <p><strong>Generated:</strong> ${new Date().toLocaleDateString()}</p>
+    <h2 style="margin:16px 0 8px;color:#e91e63">Cycle History</h2>
+    <table><tr><th>Start Date</th><th>End Date</th><th>Duration</th></tr>
+    ${cycles.map(c=>`<tr><td>${fmtDate(c.startDate)}</td><td>${c.endDate?fmtDate(c.endDate):'Ongoing'}</td><td>${c.endDate?diffDays(c.startDate,c.endDate)+'d':'—'}</td></tr>`).join('')}
+    </table>
+    <h2 style="margin:16px 0 8px;color:#e91e63">Symptom Log</h2>
+    <table><tr><th>Date</th><th>Symptoms</th></tr>
+    ${symptoms.map(s=>`<tr><td>${fmtDate(s.date)}</td><td>${s.symptoms.join(', ')||'None'}</td></tr>`).join('')}
+    </table>
+    <h2 style="margin:16px 0 8px;color:#e91e63">Summary</h2>
+    <p>Average cycle length: <strong>${pred.avgCycleLength} days</strong></p>
+    <p>Next predicted period: <strong>${fmtDate(pred.nextPeriodDate)}</strong></p>`;
+  window.print();
+}
+
+// ── REMINDERS ──
+function scheduleReminders() {
+  if (!('Notification' in window)) return;
+  const rem = DS.load('wht_reminders') || {};
+  const cycles = DS.load('wht_cycles') || [];
+  const pred = CyclePredictor.predict(cycles);
+  if (Notification.permission === 'default') Notification.requestPermission();
+  if (Notification.permission !== 'granted') return;
+
+  if (rem.periodReminderEnabled && pred.nextPeriodDate) {
+    const triggerDate = addDays(pred.nextPeriodDate, -(rem.periodReminderDaysBefore || 2));
+    scheduleNotif('period', triggerDate, '🩸 Period coming soon', `Your period is expected in ${rem.periodReminderDaysBefore||2} days`);
+  }
+  if (rem.ovulationReminderEnabled && pred.ovulationDate) {
+    const triggerDate = addDays(pred.ovulationDate, -(rem.ovulationReminderDaysBefore || 1));
+    scheduleNotif('ovulation', triggerDate, '🌿 Ovulation approaching', `Your ovulation window starts soon`);
+  }
+  if (rem.medicationReminderEnabled && rem.medicationReminderTime) {
+    scheduleDailyNotif('medication', rem.medicationReminderTime, '💊 Medication reminder', 'Time to take your medication or supplement');
+  }
+}
+const _notifTimers = {};
+function scheduleNotif(key, dateStr, title, body) {
+  if (_notifTimers[key]) clearTimeout(_notifTimers[key]);
+  const ms = parseDate(dateStr) - Date.now();
+  if (ms > 0 && ms < 7 * 86400000) _notifTimers[key] = setTimeout(() => new Notification(title, { body, icon: '🌸' }), ms);
+}
+function scheduleDailyNotif(key, timeStr, title, body) {
+  if (_notifTimers[key]) clearTimeout(_notifTimers[key]);
+  const [h, m] = timeStr.split(':').map(Number);
+  const now = new Date(), trigger = new Date();
+  trigger.setHours(h, m, 0, 0);
+  if (trigger <= now) trigger.setDate(trigger.getDate() + 1);
+  const ms = trigger - now;
+  _notifTimers[key] = setTimeout(() => { new Notification(title, { body, icon: '🌸' }); scheduleDailyNotif(key, timeStr, title, body); }, ms);
+}
+
+// ── CHATBOT ──
+const CHATBOT_KB = [
+  { q: ['cramp','cramps','pain','period pain'], a: 'Cramps happen when your uterus contracts to shed its lining. Prostaglandins (hormone-like chemicals) trigger these contractions. Try a warm compress, gentle yoga, ibuprofen, or magnesium-rich foods like dark chocolate and bananas. 🌡️' },
+  { q: ['eat','food','diet','nutrition'], a: 'During your period: iron-rich foods (spinach, lentils), vitamin C to absorb iron, and stay hydrated. During ovulation: omega-3s and antioxidants. Luteal phase: reduce caffeine and sugar to ease PMS. 🥗' },
+  { q: ['fertile','fertility','conceive','pregnant','pregnancy'], a: 'Your fertile window is typically 5 days before ovulation plus ovulation day itself. Ovulation usually occurs 14 days before your next period. Sperm can survive up to 5 days, so timing matters! 🌿' },
+  { q: ['ovulation','ovulate'], a: 'Ovulation is when your ovary releases an egg, usually around day 14 of a 28-day cycle. Signs include a slight temperature rise, clear stretchy cervical mucus, and sometimes mild one-sided pain (mittelschmerz). 🌸' },
+  { q: ['pms','mood','emotional','irritable','sad'], a: 'PMS (premenstrual syndrome) is caused by hormonal shifts in the luteal phase. To reduce symptoms: exercise regularly, limit caffeine and salt, get enough sleep, and consider magnesium or B6 supplements. 💊' },
+  { q: ['irregular','irregular cycle','cycle length'], a: 'Irregular cycles can be caused by stress, weight changes, thyroid issues, PCOS, or perimenopause. If your cycle varies by more than 7-9 days regularly, consider speaking with a healthcare provider. 📋' },
+  { q: ['headache','migraine'], a: 'Hormonal headaches often occur just before or during your period due to estrogen drops. Stay hydrated, maintain regular sleep, and avoid skipping meals. Magnesium supplements may help prevent menstrual migraines. 💆' },
+  { q: ['bloating','bloat'], a: 'Bloating before and during your period is caused by hormonal changes affecting water retention and digestion. Reduce salt intake, avoid carbonated drinks, eat smaller meals, and try gentle movement. 🌊' },
+  { q: ['acne','skin','breakout'], a: 'Hormonal acne typically appears around the chin and jawline before your period due to rising androgens. Keep skin clean, avoid touching your face, and consider a gentle salicylic acid cleanser. ✨' },
+  { q: ['sleep','tired','fatigue','exhausted'], a: 'Fatigue is common during your period and luteal phase due to progesterone and blood loss. Prioritize 7-9 hours of sleep, eat iron-rich foods, and avoid heavy exercise during your period if you feel drained. 😴' },
+  { q: ['safe days','safe','avoid pregnancy'], a: 'The "safe days" are typically the days just after your period ends and the days right before your next period. However, cycles vary and this method is not highly reliable for contraception. Consult a healthcare provider for contraception advice. 📅' },
+  { q: ['water','hydrate','hydration'], a: 'Staying hydrated helps reduce bloating, cramps, and fatigue. Aim for 8-10 glasses of water daily, especially during your period. Herbal teas like chamomile and ginger can also help with cramps. 💧' },
+  { q: ['exercise','workout','gym'], a: 'Light exercise during your period (walking, yoga, swimming) can reduce cramps and boost mood via endorphins. Save high-intensity workouts for your follicular and ovulation phases when energy is highest. 🏃' },
+  { q: ['hello','hi','hey'], a: 'Hello! 🌸 I\'m your Women Health Assistant. Ask me anything about your cycle, symptoms, nutrition, or general health. I\'m here to help!' },
+  { q: ['thank','thanks'], a: 'You\'re welcome! 🌸 Remember, I\'m always here if you have more questions. Take care of yourself!' }
+];
+function chatbotReply(msg) {
+  const lower = msg.toLowerCase();
+  for (const entry of CHATBOT_KB) {
+    if (entry.q.some(kw => lower.includes(kw))) return entry.a;
+  }
+  return "That's a great question! 🌸 For personalized medical advice, please consult a healthcare provider. I can help with general questions about cycles, symptoms, nutrition, and wellness.";
+}
+let chatbotOpen = false;
+function toggleChatbot() {
+  chatbotOpen = !chatbotOpen;
+  document.getElementById('chatbot-panel').classList.toggle('open', chatbotOpen);
+  if (chatbotOpen && !document.getElementById('chatbot-messages').children.length) {
+    addChatMsg('bot', "Hi! 🌸 I'm your Women Health Assistant. Ask me anything about your cycle, symptoms, or health tips!");
+  }
+}
+function addChatMsg(type, text) {
+  const el = document.createElement('div');
+  el.className = `chat-msg ${type}`;
+  el.textContent = text;
+  const msgs = document.getElementById('chatbot-messages');
+  msgs.appendChild(el);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+function chatSend() {
+  const inp = document.getElementById('chatbot-input');
+  const msg = inp.value.trim();
+  if (!msg) return;
+  inp.value = '';
+  addChatMsg('user', msg);
+  setTimeout(() => addChatMsg('bot', chatbotReply(msg)), 400);
+}
+function chatAsk(q) {
+  if (!chatbotOpen) toggleChatbot();
+  addChatMsg('user', q);
+  setTimeout(() => addChatMsg('bot', chatbotReply(q)), 400);
+}
+
+// ── BOOT ──
+(function boot() {
+  const settings = DS.load('wht_settings') || {};
+  if (settings.darkMode) document.body.classList.add('dark');
+  if (!settings.onboardingComplete) {
+    document.getElementById('auth-screen').style.display = 'none';
+    document.getElementById('onboarding').style.display = 'block';
+    return;
+  }
+  if (Auth.isEnabled()) {
+    document.getElementById('auth-screen').style.display = 'flex';
+  } else {
+    document.getElementById('auth-screen').style.display = 'none';
+    launchApp();
+  }
+})();
+</script>
+</body>
+</html>
